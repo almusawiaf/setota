@@ -1,0 +1,30 @@
+{
+  "rules": {
+    "drivers": {
+      "$driverId": {
+        "read": true,
+        "write": true,
+        "validate": "newData.hasChildren(['id', 'driverName', 'phone', 'category', 'isOnline', 'location'])"
+      }
+    },
+    "orders": {
+      "$orderId": {
+        "read": true,
+        "write": true,
+        "validate": "newData.hasChildren(['id', 'stootaId', 'customerName', 'customerPhone', 'status'])"
+      }
+    },
+    "users": {
+      "$userId": {
+        "read": true,
+        "write": true
+      }
+    },
+    "reviews": {
+      "$reviewId": {
+        "read": true,
+        "write": true
+      }
+    }
+  }
+}

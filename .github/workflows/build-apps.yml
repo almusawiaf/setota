@@ -1,0 +1,98 @@
+name: Build Android and iOS Apps
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  # -------------------------------------------------------------
+  # 1. ANDROID BUILD JOB (Runs on standard Ubuntu Linux / Windows)
+  # -------------------------------------------------------------
+  build-android:
+    name: Build Android APK & App Bundle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Web Assets
+        run: npm run build
+
+      - name: Add and Sync Android Platform
+        run: |
+          npx cap add android || true
+          npx cap sync android
+
+      - name: Build Android APK & AAB
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
+          ./gradlew bundleDebug
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: stoota-android-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload Android App Bundle (For Google Play)
+        uses: actions/upload-artifact@v4
+        with:
+          name: stoota-android-aab
+          path: android/app/build/outputs/bundle/debug/app-debug.aab
+
+  # -------------------------------------------------------------
+  # 2. IOS BUILD JOB (Runs on Free GitHub Cloud macOS Runner)
+  # -------------------------------------------------------------
+  build-ios:
+    name: Build iOS App (Cloud Mac Runner)
+    runs-on: macos-14
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Web Assets
+        run: npm run build
+
+      - name: Add and Sync iOS Platform
+        run: |
+          npm install @capacitor/ios
+          npx cap add ios || true
+          npx cap sync ios
+
+      - name: Build iOS Xcode Workspace
+        working-directory: ios/App
+        run: |
+          xcodebuild -workspace App.xcworkspace -scheme App -destination generic/platform=iOS CODE_SIGNING_ALLOWED=NO -configuration Release clean build
+
+      - name: Upload iOS Build Output
+        uses: actions/upload-artifact@v4
+        with:
+          name: stoota-ios-app
+          path: ios/App
